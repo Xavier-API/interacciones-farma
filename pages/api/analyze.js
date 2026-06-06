@@ -1,11 +1,11 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
-  const { prompt, imagen } = req.body;
+  const { prompt, imagen, mediaType } = req.body;
   try {
     const messages = imagen ? [{
       role: 'user',
       content: [
-        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imagen } },
+        { type: 'image', source: { type: 'base64', media_type: mediaType||'image/jpeg', data: imagen } },
         { type: 'text', text: prompt }
       ]
     }] : [{ role: 'user', content: prompt }];
