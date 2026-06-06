@@ -119,7 +119,8 @@ export default function App() {
           headers:{"Content-Type":"application/json"},
           body: JSON.stringify({
             prompt: "Extrae TODOS los medicamentos que aparecen en esta imagen sin excepcion. Incluye cada farmaco que veas aunque sea dificil de leer. Devuelve UNICAMENTE un array JSON (sin markdown ni texto adicional): [{\"nombre\":\"\",\"dosis\":\"\",\"frecuencia\":\"\",\"via\":\"\"}]. Si no puedes leer algun campo dejalo vacio. Solo el JSON.",
-            imagen: img
+            imagen: img.data,
+            mediaType: img.mediaType
           })
         });
         const data = await res.json();
