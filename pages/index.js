@@ -101,7 +101,7 @@ export default function App() {
       const mediaType = file.type === 'image/heic' || file.type === 'image/heif' 
         ? 'image/jpeg' 
         : (file.type || 'image/jpeg');
-      const data = dataUrl.split(",")[1];
+      const data = dataUrl.split(",")[1].replace(/\s/g, '');
       if(num===1){ setImagen1({data, mediaType}); setPreview1(dataUrl); }
       else { setImagen2({data, mediaType}); setPreview2(dataUrl); }
     };
