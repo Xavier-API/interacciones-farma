@@ -106,18 +106,15 @@ export default function App() {
 
   const extraerMedicamentos = async () => {
     if(!imagen1&&!imagen2) return;
-    setExtrayendo(true); setError(null);
+    setExtrayendo(true); setError(null); setResultado(null);
     try {
-      const imagenes = [];
-      if(imagen1) imagenes.push(imagen1);
-      if(imagen2) imagenes.push(imagen2);
       const todos = [];
-      for(const img of imagenes) {
+      for(const img of [imagen1,imagen2].filter(Boolean)) {
         const res = await fetch("/api/analyze", {
           method:"POST",
           headers:{"Content-Type":"application/json"},
           body: JSON.stringify({
-            prompt: "Extrae todos los medicamentos de esta imagen. Devuelve UNICAMENTE un array JSON (sin markdown): [{\"nombre\":\"\",\"dosis\":\"\",\"frecuencia\":\"\",\"via\":\"\"}]. Solo el JSON.",
+            prompt: "Extrae TODOS los medicamentos que aparecen en esta imagen sin excepcion. Incluye cada farmaco que veas aunque sea dificil de leer. Devuelve UNICAMENTE un array JSON (sin markdown ni texto adicional): [{\"nombre\":\"\",\"dosis\":\"\",\"frecuencia\":\"\",\"via\":\"\"}]. Si no puedes leer algun campo dejalo vacio. Solo el JSON.",
             imagen: img
           })
         });
@@ -126,14 +123,14 @@ export default function App() {
         const parsed = JSON.parse(text);
         if(Array.isArray(parsed)) todos.push(...parsed);
       }
-      if(todos.length>0) {
-        setMeds(todos.filter(m=>m.nombre?.trim()));
+      const filtrados = todos.filter(m=>m.nombre?.trim());
+      if(filtrados.length>0) {
+        setMeds(filtrados);
         setImagen1(null); setImagen2(null); setPreview1(null); setPreview2(null);
-      } else setError("No se detectaron medicamentos. Intenta con otra foto.");
-    } catch { setError("Error al procesar la imagen."); }
+      } else setError("No se detectaron medicamentos. Intenta con otra foto mas clara.");
+    } catch(e) { setError("Error al procesar la imagen: "+e.message); }
     setExtrayendo(false);
   };
-
   const analizar = async () => {
     const mv = meds.filter(m=>m.nombre.trim());
     if(mv.length<2){setError("Añade al menos 2 medicamentos.");return;}
