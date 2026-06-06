@@ -8,7 +8,7 @@ const NIVEL = {
   leve: { bg:"#EAF3DE", border:"#639922", text:"#27500A", badge:"#C0DD97", badgeText:"#173404", dot:"#639922" },
 };
 const LABEL = { grave:"Grave", moderada:"Moderada", leve:"Leve" };
-
+const COLORES = { grave:"#E24B4A", moderada:"#EF9F27", leve:"#639922" };
 function exportarCSV(registros) {
   const S = ";";
   const txt = v => `"${String(v===null||v===undefined?"":v).replace(/"/g,'""')}"`;
@@ -57,7 +57,6 @@ function FarmacoInput({ value, onChange, placeholder }) {
     </div>
   );
 }
-
 export default function App() {
   const [tab, setTab] = useState("analisis");
   const [edad, setEdad] = useState("");
@@ -72,6 +71,15 @@ export default function App() {
   const [error, setError] = useState(null);
   const [expandido, setExpandido] = useState({});
   const [registros, setRegistros] = useState([]);
+  const [imagen1, setImagen1] = useState(null);
+  const [imagen2, setImagen2] = useState(null);
+  const [preview1, setPreview1] = useState(null);
+  const [preview2, setPreview2] = useState(null);
+  const [extrayendo, setExtrayendo] = useState(false);
+  const [adminOk, setAdminOk] = useState(false);
+  const [adminPass, setAdminPass] = useState("");
+  const [adminError, setAdminError] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const addMed = () => setMeds([...meds,{nombre:"",dosis:"",frecuencia:"",via:""}]);
   const delMed = i => setMeds(meds.filter((_,idx)=>idx!==i));
@@ -82,6 +90,48 @@ export default function App() {
     setEdad(""); setSexo(""); setPeso(""); setFg(""); setOtros(""); setContexto("");
     setMeds([{nombre:"",dosis:"",frecuencia:"",via:""},{nombre:"",dosis:"",frecuencia:"",via:""}]);
     setResultado(null); setError(null); setExpandido({});
+    setImagen1(null); setImagen2(null); setPreview1(null); setPreview2(null);
+  };
+
+  const handleImg = (e, num) => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const data = ev.target.result.split(",")[1];
+      if(num===1){ setImagen1(data); setPreview1(ev.target.result); }
+      else { setImagen2(data); setPreview2(ev.target.result); }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const extraerMedicamentos = async () => {
+    if(!imagen1&&!imagen2) return;
+    setExtrayendo(true); setError(null);
+    try {
+      const imagenes = [];
+      if(imagen1) imagenes.push(imagen1);
+      if(imagen2) imagenes.push(imagen2);
+      const todos = [];
+      for(const img of imagenes) {
+        const res = await fetch("/api/analyze", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({
+            prompt: "Extrae todos los medicamentos de esta imagen. Devuelve UNICAMENTE un array JSON (sin markdown): [{\"nombre\":\"\",\"dosis\":\"\",\"frecuencia\":\"\",\"via\":\"\"}]. Solo el JSON.",
+            imagen: img
+          })
+        });
+        const data = await res.json();
+        const text = data.content.map(b=>b.text||"").join("").replace(/```json|```/g,"").trim();
+        const parsed = JSON.parse(text);
+        if(Array.isArray(parsed)) todos.push(...parsed);
+      }
+      if(todos.length>0) {
+        setMeds(todos.filter(m=>m.nombre?.trim()));
+        setImagen1(null); setImagen2(null); setPreview1(null); setPreview2(null);
+      } else setError("No se detectaron medicamentos. Intenta con otra foto.");
+    } catch { setError("Error al procesar la imagen."); }
+    setExtrayendo(false);
   };
 
   const analizar = async () => {
@@ -105,9 +155,9 @@ export default function App() {
     setLoading(false);
   };
 
+  const eliminarRegistro = i => { setRegistros(prev=>prev.filter((_,idx)=>idx!==i)); setConfirmDelete(null); };
   const counts = {grave:0,moderada:0,leve:0};
   resultado?.interacciones?.forEach(i=>{if(counts[i.gravedad]!==undefined)counts[i.gravedad]++;});
-
   return (
     <div style={{maxWidth:680,margin:"0 auto",fontFamily:"system-ui,sans-serif",background:"#f8f9fb",minHeight:"100vh"}}>
       <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"1rem 1.25rem",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:10}}>
@@ -124,7 +174,7 @@ export default function App() {
       </div>
 
       <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",display:"flex"}}>
-        {[["analisis","Analisis"],["estadisticas","Estadisticas"],["admin","Admin"]].map(([v,l])=>(
+        {[["analisis","Analisis"],["dashboard","Dashboard"],["admin","Admin"]].map(([v,l])=>(
           <button key={v} onClick={()=>setTab(v)} style={{flex:1,padding:"10px 4px",border:"none",background:"transparent",fontSize:13,fontWeight:500,cursor:"pointer",borderBottom:`2px solid ${tab===v?"#185FA5":"transparent"}`,color:tab===v?"#185FA5":"#888"}}>{l}</button>
         ))}
       </div>
@@ -133,12 +183,12 @@ export default function App() {
         {tab==="analisis"&&(
           <>
             <div style={{background:"#E6F1FB",border:"1px solid #B5D4F4",borderRadius:12,padding:"10px 14px",marginBottom:"1rem"}}>
-              <p style={{fontSize:11,color:"#0C447C",margin:0}}><strong>Aviso legal:</strong> Apoyo a la decision clinica. No sustituye el criterio del profesional sanitario.</p>
+              <p style={{fontSize:11,color:"#0C447C",margin:0}}><strong>Aviso legal:</strong> Apoyo a la decision clinica. No sustituye el criterio del profesional sanitario. Verificar con Micromedex, ficha tecnica o Vademecum.</p>
             </div>
 
             <div style={{display:"flex",gap:8,marginBottom:"1rem",flexWrap:"wrap"}}>
               {(resultado||edad)&&<button onClick={nuevaConsulta} style={{background:"#f0f0f0",border:"1px solid #ddd",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>✚ Nueva consulta</button>}
-              {resultado&&<button onClick={()=>{}} style={{background:"#f0f0f0",border:"1px solid #ddd",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>🖨 PDF</button>}
+              {resultado&&<button onClick={()=>exportarCSV(registros)} style={{background:"#f0f0f0",border:"1px solid #ddd",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>⬇ CSV</button>}
             </div>
 
             <div style={{display:"flex",gap:8,marginBottom:"1rem"}}>
@@ -185,17 +235,32 @@ export default function App() {
                   </div>
                 </div>
               ))}
-              <button onClick={addMed} style={{background:"transparent",border:"1px dashed #ccc",borderRadius:8,padding:"9px 16px",fontSize:13,color:"#666",cursor:"pointer",width:"100%"}}>+ Añadir medicamento</button>
-            </div>
+              <button onClick={addMed} style={{background:"transparent",border:"1px dashed #ccc",borderRadius:8,padding:"9px 16px",fontSize:13,color:"#666",cursor:"pointer",width:"100%",marginBottom:12}}>+ Añadir medicamento</button>
 
-            <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:14,padding:"1rem 1.25rem",marginBottom:"1rem"}}>
-              <h2 style={{fontSize:13,fontWeight:600,margin:"0 0 10px",color:"#111"}}>📚 Fuentes de referencia</h2>
-              {[["Micromedex Drug Interactions","IBM Watson Health, 2024"],["Stockley's Drug Interactions","Pharmaceutical Press, 2023"],["Fichas tecnicas AEMPS","Agencia Espanola del Medicamento"],["Bot PLUS","Consejo General de Farmaceuticos"],["Clinical Pharmacology","FDA"]].map(([t,f],i)=>(
-                <div key={i} style={{display:"flex",gap:8,padding:"5px 0",borderBottom:i<4?"1px solid #f0f0f0":"none"}}>
-                  <span style={{fontSize:11,fontWeight:700,color:"#185FA5"}}>{i+1}.</span>
-                  <div><p style={{fontSize:11,fontWeight:600,color:"#185FA5",margin:0}}>{t}</p><p style={{fontSize:10,color:"#888",margin:0}}>{f}</p></div>
+              <div style={{borderTop:"1px solid #e5e7eb",paddingTop:12}}>
+                <p style={{fontSize:11,fontWeight:600,color:"#555",margin:"0 0 8px",textTransform:"uppercase"}}>📷 Importar desde imagen</p>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  {[[preview1,"Imagen 1 (receta)",e=>handleImg(e,1),()=>{setImagen1(null);setPreview1(null);}],[preview2,"Imagen 2 (segunda pagina)",e=>handleImg(e,2),()=>{setImagen2(null);setPreview2(null);}]].map(([preview,label,handler,clear],idx)=>(
+                    <div key={idx}>
+                      {!preview?(
+                        <label style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:5,background:"#f0f7ff",border:"1px dashed #378ADD",borderRadius:8,padding:"10px 6px",cursor:"pointer",fontSize:11,color:"#185FA5",fontWeight:500,textAlign:"center",minHeight:60}}>
+                          📷 {label}<input type="file" accept="image/*" style={{display:"none"}} onChange={handler}/>
+                        </label>
+                      ):(
+                        <div style={{background:"#f8f9fb",borderRadius:8,padding:6,border:"1px solid #e5e7eb"}}>
+                          <img src={preview} alt="preview" style={{width:"100%",maxHeight:80,objectFit:"contain",borderRadius:4,marginBottom:4}}/>
+                          <button onClick={clear} style={{width:"100%",background:"transparent",border:"none",fontSize:11,color:"#888",cursor:"pointer"}}>✕ Quitar</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
+                {(imagen1||imagen2)&&(
+                  <button onClick={extraerMedicamentos} disabled={extrayendo} style={{background:extrayendo?"#B5D4F4":"#185FA5",color:"#fff",border:"none",borderRadius:8,padding:"9px 0",fontSize:13,cursor:"pointer",width:"100%",marginTop:8}}>
+                    {extrayendo?"Extrayendo...":"✨ Extraer medicamentos de las imagenes"}
+                  </button>
+                )}
+              </div>
             </div>
 
             {error&&<div style={{background:"#FCEBEB",border:"1px solid #E24B4A",borderRadius:10,padding:"10px 14px",marginBottom:12}}><p style={{fontSize:13,color:"#791F1F",margin:0}}>{error}</p></div>}
@@ -266,18 +331,21 @@ export default function App() {
             )}
           </>
         )}
-
-        {tab==="estadisticas"&&(
+{tab==="dashboard"&&(
           <div>
             {registros.length===0?(
-              <div style={{textAlign:"center",padding:"3rem",color:"#888"}}><div style={{fontSize:40,marginBottom:12}}>📊</div><p>Realiza el primer analisis para ver estadisticas.</p></div>
+              <div style={{textAlign:"center",padding:"3rem",color:"#888"}}>
+                <div style={{fontSize:40,marginBottom:12}}>📊</div>
+                <p style={{fontSize:15,fontWeight:500,color:"#555",margin:"0 0 6px"}}>Sin datos todavia</p>
+                <p style={{fontSize:13,margin:0}}>Realiza el primer analisis para ver estadisticas.</p>
+              </div>
             ):(
               <>
                 <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
                   <button onClick={()=>exportarCSV(registros)} style={{background:"#f0f0f0",border:"1px solid #ddd",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>⬇ Exportar CSV</button>
                 </div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:10,marginBottom:"1rem"}}>
-                  {[["Analisis",registros.length,"#185FA5","#E6F1FB"],["Interacciones",registros.reduce((a,r)=>a+(r.interacciones?.length||0),0),"#791F1F","#FCEBEB"]].map(([l,v,txt,bg])=>(
+                  {[["Analisis",registros.length,"#185FA5","#E6F1FB"],["Interacciones",registros.reduce((a,r)=>a+(r.interacciones?.length||0),0),"#791F1F","#FCEBEB"],["Edad media",Math.round(registros.filter(r=>r.edad).reduce((a,r)=>a+r.edad,0)/registros.filter(r=>r.edad).length)||0,"#27500A","#EAF3DE"]].map(([l,v,txt,bg])=>(
                     <div key={l} style={{background:bg,borderRadius:12,padding:"14px",textAlign:"center"}}>
                       <p style={{fontSize:22,fontWeight:600,margin:"0 0 2px",color:txt}}>{v}</p>
                       <p style={{fontSize:10,fontWeight:600,margin:0,color:txt,textTransform:"uppercase"}}>{l}</p>
@@ -285,6 +353,19 @@ export default function App() {
                   ))}
                 </div>
                 <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"1rem",marginBottom:"1rem"}}>
+                  <p style={{fontSize:13,fontWeight:600,color:"#333",margin:"0 0 10px"}}>Distribucion por gravedad</p>
+                  {["grave","moderada","leve"].map(n=>{
+                    const total=registros.reduce((a,r)=>a+(r.interacciones?.length||0),0);
+                    const v=registros.reduce((a,r)=>a+(r.counts?.[n]||0),0);
+                    const pct=total?Math.round(v/total*100):0;
+                    return(<div key={n} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                      <span style={{width:70,fontSize:12,fontWeight:500,color:COLORES[n]}}>{LABEL[n]}</span>
+                      <div style={{flex:1,background:"#f0f0f0",borderRadius:4,height:8,overflow:"hidden"}}><div style={{width:pct+"%",height:"100%",background:COLORES[n],borderRadius:4}}/></div>
+                      <span style={{width:52,fontSize:12,color:"#555",textAlign:"right"}}>{v} ({pct}%)</span>
+                    </div>);
+                  })}
+                </div>
+                <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"1rem"}}>
                   <p style={{fontSize:13,fontWeight:600,color:"#333",margin:"0 0 12px"}}>Ultimos registros</p>
                   {[...registros].reverse().slice(0,10).map((r,i)=>(
                     <div key={i} style={{display:"flex",alignItems:"center",gap:10,padding:"8px 0",borderBottom:i<9?"1px solid #f0f0f0":"none"}}>
@@ -304,11 +385,61 @@ export default function App() {
         )}
 
         {tab==="admin"&&(
-          <div style={{textAlign:"center",padding:"3rem",color:"#888"}}>
-            <div style={{fontSize:40,marginBottom:12}}>⚙️</div>
-            <p style={{fontSize:15,fontWeight:500,color:"#555",margin:"0 0 6px"}}>Panel de administracion</p>
-            <p style={{fontSize:13,margin:"0 0 16px"}}>Disponible en la version publicada.</p>
-            {registros.length>0&&<button onClick={()=>exportarCSV(registros)} style={{background:"#185FA5",color:"#fff",border:"none",borderRadius:8,padding:"10px 24px",fontSize:14,cursor:"pointer"}}>⬇ Exportar CSV</button>}
+          <div>
+            {!adminOk?(
+              <div style={{maxWidth:320,margin:"3rem auto",textAlign:"center"}}>
+                <div style={{fontSize:36,marginBottom:12}}>🔒</div>
+                <p style={{fontSize:15,fontWeight:600,color:"#333",margin:"0 0 6px"}}>Acceso restringido</p>
+                <p style={{fontSize:13,color:"#888",margin:"0 0 20px"}}>Introduce la contrasena de administrador</p>
+                <input type="password" value={adminPass} onChange={e=>{setAdminPass(e.target.value);setAdminError(false);}} onKeyDown={e=>{if(e.key==="Enter"){if(adminPass==="Medicina2026")setAdminOk(true);else setAdminError(true);}}} placeholder="Contrasena" style={{width:"100%",boxSizing:"border-box",border:`1px solid ${adminError?"#E24B4A":"#ddd"}`,borderRadius:8,padding:"10px 14px",fontSize:14,outline:"none",marginBottom:8,textAlign:"center"}}/>
+                {adminError&&<p style={{fontSize:12,color:"#E24B4A",margin:"0 0 10px"}}>Contrasena incorrecta</p>}
+                <button onClick={()=>{if(adminPass==="Medicina2026")setAdminOk(true);else setAdminError(true);}} style={{background:"#185FA5",color:"#fff",border:"none",borderRadius:10,padding:"11px 0",fontSize:14,fontWeight:500,cursor:"pointer",width:"100%"}}>Acceder</button>
+              </div>
+            ):(
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"1rem",flexWrap:"wrap",gap:8}}>
+                  <div>
+                    <p style={{fontSize:15,fontWeight:600,color:"#333",margin:"0 0 2px"}}>Gestion de registros</p>
+                    <p style={{fontSize:12,color:"#888",margin:0}}>{registros.length} registro{registros.length!==1?"s":""} en esta sesion</p>
+                  </div>
+                  <div style={{display:"flex",gap:8}}>
+                    {registros.length>0&&<button onClick={()=>exportarCSV(registros)} style={{background:"#f0f0f0",border:"1px solid #ddd",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>⬇ CSV</button>}
+                    <button onClick={()=>{setAdminOk(false);setAdminPass("");}} style={{fontSize:12,color:"#888",background:"transparent",border:"1px solid #ddd",borderRadius:8,padding:"6px 12px",cursor:"pointer"}}>Cerrar sesion</button>
+                  </div>
+                </div>
+                {registros.length===0?(
+                  <div style={{textAlign:"center",padding:"3rem",color:"#888"}}><div style={{fontSize:36,marginBottom:10}}>📭</div><p>No hay registros en esta sesion.</p></div>
+                ):[...registros].reverse().map((r,i)=>{
+                  const realIdx=registros.length-1-i;
+                  const fd=new Date(r.fecha);
+                  const fecha=`${String(fd.getDate()).padStart(2,"0")}/${String(fd.getMonth()+1).padStart(2,"0")}/${String(fd.getFullYear()).slice(2)}`;
+                  return(
+                    <div key={i} style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:12,padding:"12px 14px",marginBottom:8}}>
+                      <div style={{display:"flex",alignItems:"flex-start",gap:10}}>
+                        <div style={{flex:1}}>
+                          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:4}}>
+                            {r.contexto&&<span style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:10,background:"#E6F1FB",color:"#185FA5"}}>{r.contexto}</span>}
+                            {["grave","moderada","leve"].map(n=>r.counts?.[n]>0&&(<span key={n} style={{fontSize:10,fontWeight:600,padding:"2px 7px",borderRadius:10,background:NIVEL[n].badge,color:NIVEL[n].badgeText}}>{r.counts[n]} {LABEL[n].toLowerCase()}{r.counts[n]>1?"s":""}</span>))}
+                          </div>
+                          <p style={{fontSize:13,fontWeight:500,color:"#333",margin:"0 0 2px"}}>{r.medicamentos?.join(", ")||"—"}</p>
+                          <p style={{fontSize:11,color:"#888",margin:0}}>{r.edad}{r.sexo?` · ${r.sexo}`:""}{r.peso?` · ${r.peso}kg`:""}{r.fg?` · FG ${r.fg}`:""}</p>
+                          <p style={{fontSize:11,color:"#aaa",margin:"3px 0 0"}}>📅 {fecha}</p>
+                        </div>
+                        {confirmDelete===realIdx?(
+                          <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}>
+                            <p style={{fontSize:11,color:"#791F1F",margin:"0 0 4px",fontWeight:500}}>Confirmar?</p>
+                            <div style={{display:"flex",gap:6}}>
+                              <button onClick={()=>eliminarRegistro(realIdx)} style={{fontSize:11,padding:"4px 10px",background:"#E24B4A",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>Eliminar</button>
+                              <button onClick={()=>setConfirmDelete(null)} style={{fontSize:11,padding:"4px 10px",background:"#f0f0f0",color:"#555",border:"none",borderRadius:6,cursor:"pointer"}}>Cancelar</button>
+                            </div>
+                          </div>
+                        ):<button onClick={()=>setConfirmDelete(realIdx)} style={{fontSize:11,padding:"5px 10px",background:"#FCEBEB",color:"#A32D2D",border:"1px solid #F7C1C1",borderRadius:8,cursor:"pointer"}}>🗑 Eliminar</button>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
