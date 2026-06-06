@@ -2,10 +2,17 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   const { prompt, imagen, mediaType } = req.body;
   try {
-    const messages = imagen ? [{
+    let imageData = imagen;
+    let imageType = mediaType || 'image/jpeg';
+    
+    if (imageData && imageData.includes(',')) {
+      imageData = imageData.split(',')[1];
+    }
+    
+    const messages = imageData ? [{
       role: 'user',
       content: [
-        { type: 'image', source: { type: 'base64', media_type: mediaType||'image/jpeg', data: imagen } },
+        { type: 'image', source: { type: 'base64', media_type: imageType, data: imageData } },
         { type: 'text', text: prompt }
       ]
     }] : [{ role: 'user', content: prompt }];
