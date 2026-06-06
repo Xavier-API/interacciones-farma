@@ -97,9 +97,13 @@ export default function App() {
     const file = e.target.files[0]; if(!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
-      const data = ev.target.result.split(",")[1];
-      if(num===1){ setImagen1(data); setPreview1(ev.target.result); }
-      else { setImagen2(data); setPreview2(ev.target.result); }
+      const dataUrl = ev.target.result;
+      const mediaType = file.type === 'image/heic' || file.type === 'image/heif' 
+        ? 'image/jpeg' 
+        : (file.type || 'image/jpeg');
+      const data = dataUrl.split(",")[1];
+      if(num===1){ setImagen1({data, mediaType}); setPreview1(dataUrl); }
+      else { setImagen2({data, mediaType}); setPreview2(dataUrl); }
     };
     reader.readAsDataURL(file);
   };
