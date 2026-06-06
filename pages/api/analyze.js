@@ -1,9 +1,15 @@
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).end();
-  }
-  const { prompt } = req.body;
+  if (req.method !== 'POST') return res.status(405).end();
+  const { prompt, imagen } = req.body;
   try {
+    const messages = imagen ? [{
+      role: 'user',
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imagen } },
+        { type: 'text', text: prompt }
+      ]
+    }] : [{ role: 'user', content: prompt }];
+
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -14,7 +20,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
         max_tokens: 4000,
-        messages: [{ role: 'user', content: prompt }]
+        messages
       })
     });
     const data = await response.json();
