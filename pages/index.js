@@ -246,7 +246,7 @@ export default function App() {
                     <div key={idx}>
                       {!preview?(
                         <label style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:5,background:"#f0f7ff",border:"1px dashed #378ADD",borderRadius:8,padding:"10px 6px",cursor:"pointer",fontSize:11,color:"#185FA5",fontWeight:500,textAlign:"center",minHeight:60}}>
-                          📷 {label}<input type="file" accept="image/*" style={{display:"none"}} onChange={handler}/>
+                          📷 {label}<input type="file" accept="image/jpeg,image/png,image/jpg" style={{display:"none"}} onChange={handler}/>
                         </label>
                       ):(
                         <div style={{background:"#f8f9fb",borderRadius:8,padding:6,border:"1px solid #e5e7eb"}}>
