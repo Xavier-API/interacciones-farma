@@ -164,7 +164,9 @@ useEffect(() => { cargarRegistros(); }, []);
       setResultado(parsed);
       const counts = {grave:0,moderada:0,leve:0};
       parsed.interacciones?.forEach(i=>{if(counts[i.gravedad]!==undefined)counts[i.gravedad]++;});
-      setRegistros(prev=>[...prev,{fecha:Date.now(),edad:parseInt(edad)||null,sexo:sexo||null,peso:parseFloat(peso)||null,fg:parseFloat(fg)||null,contexto:contexto||null,condicionantes:otros||null,medicamentos:mv.map(m=>m.nombre),interacciones:parsed.interacciones||[],counts,resumen:parsed.resumen}]);
+      const nuevoRegistro = {fecha:Date.now(),edad:parseInt(edad)||null,sexo:sexo||null,peso:parseFloat(peso)||null,fg:parseFloat(fg)||null,contexto:contexto||null,condicionantes:otros||null,medicamentos:mv.map(m=>m.nombre),interacciones:parsed.interacciones||[],counts,resumen:parsed.resumen};
+      setRegistros(prev=>[...prev,nuevoRegistro]);
+      fetch("/api/registros",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({registro:nuevoRegistro})});
     } catch(e) { setError("Error al analizar. Comprueba tu conexion."); }
     setLoading(false);
   };
