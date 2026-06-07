@@ -171,7 +171,15 @@ useEffect(() => { cargarRegistros(); }, []);
     setLoading(false);
   };
 
-  const eliminarRegistro = i => { setRegistros(prev=>prev.filter((_,idx)=>idx!==i)); setConfirmDelete(null); };
+   const eliminarRegistro = async (i, id) => {
+    setRegistros(prev=>prev.filter((_,idx)=>idx!==i));
+    setConfirmDelete(null);
+    if(id) {
+      try {
+        await fetch("/api/registros",{method:"DELETE",headers:{"Content-Type":"application/json"},body:JSON.stringify({id})});
+      } catch(e) { console.error(e); }
+    }
+  };
   const counts = {grave:0,moderada:0,leve:0};
   resultado?.interacciones?.forEach(i=>{if(counts[i.gravedad]!==undefined)counts[i.gravedad]++;});
   return (
