@@ -95,17 +95,21 @@ export default function App() {
 
   const handleImg = (e, num) => {
     const file = e.target.files[0]; if(!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const dataUrl = ev.target.result;
-      const mediaType = file.type === 'image/heic' || file.type === 'image/heif' 
-        ? 'image/jpeg' 
-        : (file.type || 'image/jpeg');
-      const data = dataUrl.split(",")[1].replace(/\s/g, '');
-      if(num===1){ setImagen1({data, mediaType}); setPreview1(dataUrl); }
-      else { setImagen2({data, mediaType}); setPreview2(dataUrl); }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const jpeg = canvas.toDataURL('image/jpeg', 0.85);
+      const data = jpeg.split(',')[1];
+      URL.revokeObjectURL(objectUrl);
+      if(num===1){ setImagen1({data, mediaType:'image/jpeg'}); setPreview1(jpeg); }
+      else { setImagen2({data, mediaType:'image/jpeg'}); setPreview2(jpeg); }
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   };
 
   const extraerMedicamentos = async () => {
