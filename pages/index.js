@@ -170,7 +170,46 @@ useEffect(() => { cargarRegistros(); }, []);
     } catch(e) { setError("Error al analizar. Comprueba tu conexion."); }
     setLoading(false);
   };
-
+const exportarPDF = () => {
+    const fecha = new Date().toLocaleDateString("es-ES",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+    const interHtml = ["grave","moderada","leve"].map(nivel=>{
+      const items = resultado.interacciones?.filter(i=>i.gravedad===nivel)||[];
+      if(!items.length) return "";
+      const c={grave:"#E24B4A",moderada:"#EF9F27",leve:"#639922"};
+      const bg={grave:"#FCEBEB",moderada:"#FAEEDA",leve:"#EAF3DE"};
+      const label={grave:"GRAVE",moderada:"MODERADA",leve:"LEVE"};
+      return `<h3 style="color:${c[nivel]};font-size:12px;margin:14px 0 6px;text-transform:uppercase;">${label[nivel]}</h3>`
+        +items.map(i=>`<div style="background:${bg[nivel]};border-left:3px solid ${c[nivel]};border-radius:6px;padding:10px 12px;margin-bottom:7px;">
+          <p style="font-weight:700;font-size:12px;margin:0 0 5px;color:${c[nivel]}">${i.farmaco1} + ${i.farmaco2} <span style="font-weight:400;font-size:10px">(${i.frecuencia})</span></p>
+          <p style="font-size:11px;margin:0 0 2px;color:#333"><strong>Mecanismo:</strong> ${i.mecanismo}</p>
+          <p style="font-size:11px;margin:0 0 2px;color:#333"><strong>Consecuencia:</strong> ${i.consecuencia}</p>
+          <p style="font-size:11px;margin:0 0 2px;color:#333"><strong>Recomendacion:</strong> ${i.recomendacion}</p>
+          ${i.referencias?.length?`<p style="font-size:10px;margin:4px 0 0;color:#666"><strong>Referencias:</strong> ${i.referencias.slice(0,3).join(" · ")}</p>`:""}
+        </div>`).join("");
+    }).join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe Interacciones</title>
+    <style>body{font-family:Arial,sans-serif;color:#222;max-width:700px;margin:0 auto;padding:20px;font-size:12px;}
+    h1{font-size:17px;color:#185FA5;margin:0 0 3px;}table{width:100%;border-collapse:collapse;margin:8px 0;}
+    td,th{border:1px solid #e5e7eb;padding:6px 10px;font-size:11px;}th{background:#f0f7ff;color:#185FA5;font-weight:700;}
+    .footer{font-size:9px;color:#aaa;margin-top:20px;border-top:1px solid #eee;padding-top:8px;}</style></head><body>
+    <h1>Informe de Interacciones Farmacologicas</h1>
+    <p style="color:#888;font-size:10px;margin:0 0 14px;">Generado: ${fecha}${contexto?" · Contexto: "+contexto:""}</p>
+    <h3 style="font-size:12px;color:#333;margin:0 0 6px;text-transform:uppercase;">Perfil del paciente</h3>
+    <table><tr><th>Edad</th><th>Sexo</th><th>Peso</th><th>FG</th><th>Condicionantes</th></tr>
+    <tr><td>${edad||"—"}</td><td>${sexo||"—"}</td><td>${peso||"—"} kg</td><td>${fg||"—"} mL/min</td><td>${otros||"—"}</td></tr></table>
+    <h3 style="font-size:12px;color:#333;margin:10px 0 6px;text-transform:uppercase;">Medicacion analizada</h3>
+    <table><tr><th>Farmaco</th><th>Dosis</th><th>Frecuencia</th><th>Via</th></tr>
+    ${meds.filter(m=>m.nombre.trim()).map(m=>`<tr><td>${m.nombre}</td><td>${m.dosis||"—"}</td><td>${m.frecuencia||"—"}</td><td>${m.via||"—"}</td></tr>`).join("")}</table>
+    <h3 style="font-size:12px;color:#333;margin:10px 0 6px;text-transform:uppercase;">Resumen</h3>
+    <p style="font-size:11px;line-height:1.6;margin:0 0 8px;">${resultado.resumen}</p>
+    ${interHtml}
+    <div class="footer">Herramienta de apoyo clinico. No sustituye el criterio del profesional sanitario.</div>
+    </body></html>`;
+    const blob = new Blob([html],{type:"text/html;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download=`informe_${new Date().toISOString().slice(0,10)}.html`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
    const eliminarRegistro = async (i, id) => {
     setRegistros(prev=>prev.filter((_,idx)=>idx!==i));
     setConfirmDelete(null);
@@ -228,14 +267,14 @@ useEffect(() => { cargarRegistros(); }, []);
             <div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:14,padding:"1.25rem",marginBottom:"1rem"}}>
               <h2 style={{fontSize:13,fontWeight:600,margin:"0 0 12px",color:"#111"}}>Perfil del paciente</h2>
               <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:10,marginBottom:10}}>
-                <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:5}}>EDAD *</label><input type="number" value={edad} onChange={e=>setEdad(e.target.value)} placeholder="72" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
+                <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:5}}>EDAD *</label><input type="number" value={edad} onChange={e=>setEdad(e.target.value)} placeholder="" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
                 <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:5}}>SEXO</label>
                   <div style={{display:"flex",gap:6}}>
                     {["M","F"].map(v=><button key={v} onClick={()=>setSexo(sexo===v?"":v)} style={{flex:1,padding:"9px 0",border:`1.5px solid ${sexo===v?"#185FA5":"#ddd"}`,borderRadius:8,background:sexo===v?"#E6F1FB":"#fff",color:sexo===v?"#185FA5":"#666",fontWeight:sexo===v?700:400,fontSize:13,cursor:"pointer"}}>{v}</button>)}
                   </div>
                 </div>
-                <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:5}}>PESO</label><input type="number" value={peso} onChange={e=>setPeso(e.target.value)} placeholder="70" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
-                <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:5}}>FG</label><input type="number" value={fg} onChange={e=>setFg(e.target.value)} placeholder="45" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
+                <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:5}}>PESO</label><input type="number" value={peso} onChange={e=>setPeso(e.target.value)} placeholder="" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
+                <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:5}}>FG</label><input type="number" value={fg} onChange={e=>setFg(e.target.value)} placeholder="" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
               </div>
               <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:5}}>OTROS CONDICIONANTES</label><input type="text" value={otros} onChange={e=>setOtros(e.target.value)} placeholder="Insuficiencia hepatica, embarazo, alergias..." style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
             </div>
@@ -252,10 +291,10 @@ useEffect(() => { cargarRegistros(); }, []);
                     {meds.length>2&&<button onClick={()=>delMed(i)} style={{background:"transparent",border:"none",color:"#A32D2D",cursor:"pointer"}}>✕</button>}
                   </div>
                   <div style={{display:"grid",gridTemplateColumns:"2fr 1fr 1fr 1fr",gap:8}}>
-                    <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>PRINCIPIO ACTIVO</label><FarmacoInput value={m.nombre} onChange={v=>upd(i,"nombre",v)} placeholder="Warfarina"/></div>
-                    <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>DOSIS</label><input value={m.dosis} onChange={e=>upd(i,"dosis",e.target.value)} placeholder="5mg" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
-                    <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>FRECUENCIA</label><input value={m.frecuencia} onChange={e=>upd(i,"frecuencia",e.target.value)} placeholder="1/dia" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
-                    <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>VIA</label><input value={m.via} onChange={e=>upd(i,"via",e.target.value)} placeholder="Oral" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
+                    <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>PRINCIPIO ACTIVO</label><FarmacoInput value={m.nombre} onChange={v=>upd(i,"nombre",v)} placeholder=""/></div>
+                    <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>DOSIS</label><input value={m.dosis} onChange={e=>upd(i,"dosis",e.target.value)} placeholder="" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
+                    <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>FRECUENCIA</label><input value={m.frecuencia} onChange={e=>upd(i,"frecuencia",e.target.value)} placeholder="" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
+                    <div><label style={{fontSize:11,fontWeight:600,color:"#555",display:"block",marginBottom:4}}>VIA</label><input value={m.via} onChange={e=>upd(i,"via",e.target.value)} placeholder="" style={{width:"100%",boxSizing:"border-box",border:"1px solid #ddd",borderRadius:8,padding:"9px 12px",fontSize:13,outline:"none"}}/></div>
                   </div>
                 </div>
               ))}
