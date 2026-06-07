@@ -216,7 +216,6 @@ export default function App() {
 
   const counts = {grave:0,moderada:0,leve:0};
   resultado?.interacciones?.forEach(i=>{if(counts[i.gravedad]!==undefined)counts[i.gravedad]++;});
-  Pega este tercer bloque justo debajo:
   return (
     <div style={{maxWidth:680,margin:"0 auto",fontFamily:"system-ui,sans-serif",background:"#f8f9fb",minHeight:"100vh"}}>
       <div style={{background:"#fff",borderBottom:"1px solid #e5e7eb",padding:"1rem 1.25rem",display:"flex",alignItems:"center",gap:12,position:"sticky",top:0,zIndex:10}}>
