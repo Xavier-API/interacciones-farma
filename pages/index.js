@@ -203,7 +203,10 @@ export default function App() {
     } catch(e) { setError("Error al analizar. Comprueba tu conexion."); }
     setLoading(false);
   };
-
+const addMed = () => setMeds([...meds,{nombre:"",dosis:"",frecuencia:"",via:""}]);
+  const delMed = i => setMeds(meds.filter((_,idx)=>idx!==i));
+  const upd = (i,f,v) => { const a=[...meds]; a[i][f]=v; setMeds(a); };
+  const toggle = k => setExpandido(e=>({...e,[k]:!e[k]}));
   const eliminarRegistro = async (i, id) => {
     setRegistros(prev=>prev.filter((_,idx)=>idx!==i));
     setConfirmDelete(null);
