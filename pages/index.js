@@ -453,7 +453,7 @@ useEffect(() => { cargarRegistros(); }, []);
                           <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}>
                             <p style={{fontSize:11,color:"#791F1F",margin:"0 0 4px",fontWeight:500}}>Confirmar?</p>
                             <div style={{display:"flex",gap:6}}>
-                              <button onClick={()=>eliminarRegistro(realIdx)} style={{fontSize:11,padding:"4px 10px",background:"#E24B4A",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>Eliminar</button>
+                              <buttononClick={()=>eliminarRegistro(realIdx,r.id)}  style={{fontSize:11,padding:"4px 10px",background:"#E24B4A",color:"#fff",border:"none",borderRadius:6,cursor:"pointer"}}>Eliminar</button>
                               <button onClick={()=>setConfirmDelete(null)} style={{fontSize:11,padding:"4px 10px",background:"#f0f0f0",color:"#555",border:"none",borderRadius:6,cursor:"pointer"}}>Cancelar</button>
                             </div>
                           </div>
