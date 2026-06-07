@@ -80,7 +80,15 @@ export default function App() {
   const [adminPass, setAdminPass] = useState("");
   const [adminError, setAdminError] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+useEffect(() => { cargarRegistros(); }, []);
 
+  const cargarRegistros = async () => {
+    try {
+      const res = await fetch("/api/registros");
+      const data = await res.json();
+      if(data.data) setRegistros(data.data);
+    } catch(e) { console.error(e); }
+  };
   const addMed = () => setMeds([...meds,{nombre:"",dosis:"",frecuencia:"",via:""}]);
   const delMed = i => setMeds(meds.filter((_,idx)=>idx!==i));
   const upd = (i,f,v) => { const a=[...meds]; a[i][f]=v; setMeds(a); };
