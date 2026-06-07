@@ -391,7 +391,6 @@ const exportarPDF = () => {
                 })}
               </div>
             )}
-          </>
         )}
 {tab==="dashboard"&&(
           <div>
