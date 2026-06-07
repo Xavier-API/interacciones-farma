@@ -253,13 +253,6 @@ const exportarPDF = () => {
               {(resultado||edad)&&<button onClick={nuevaConsulta} style={{background:"#f0f0f0",border:"1px solid #ddd",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>✚ Nueva consulta</button>}
              {resultado&&<button onClick={()=>exportarCSV(registros)} style={{background:"#f0f0f0",border:"1px solid #ddd",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>⬇ CSV</button>}
 {resultado&&<button onClick={exportarPDF} style={{background:"#f0f0f0",border:"1px solid #ddd",borderRadius:8,padding:"7px 14px",fontSize:12,cursor:"pointer"}}>🖨 PDF</button>}
-Pulsa "Commit changes" dos veces. 🏥Has dicho: No puedeo hacer una nueva busqueda al no haber guardado los cambios.No puedeo hacer una nueva busqueda al no haber guardado los cambios. En qué línea está el último mensaje?22:12Claude ha respondido: Desplázate hacia arriba en el editor hasta encontrar esta sección — está aproximadamente en la línea 200-210, justo después de los botones de "Nueva consulta":Desplázate hacia arriba en el editor hasta encontrar esta sección — está aproximadamente en la línea 200-210, justo después de los botones de "Nueva consulta":
-{(resultado||edad)&&<button onClick={nuevaConsulta}
-Justo debajo de esa línea verás:
-{resultado&&<button onClick={()=>exportarCSV(registros)}
-¿La encuentras? 🏥Has dicho: no lo encuentro.no lo encuentro....  Puedo hacer Commit changes y luego buscarlo y añadir los cambios?22:15Claude ha respondido: Sí, haz "Commit changes" ahora con los cambios que ya tienes y luego buscamos la línea para añadir el botón PDF.Sí, haz "Commit changes" ahora con los cambios que ya tienes y luego buscamos la línea para añadir el botón PDF. 🏥
-            </div>
-
             <div style={{display:"flex",gap:8,marginBottom:"1rem"}}>
               {[["🚨","Urgencias","#E24B4A","#FCEBEB","#F7C1C1"],["🛏","Ingreso","#EF9F27","#FAEEDA","#FAC775"],["🏠","Alta","#639922","#EAF3DE","#C0DD97"]].map(([icon,label,color,bg,border])=>{
                 const active=contexto===label;
